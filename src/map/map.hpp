@@ -19,7 +19,7 @@ template<>
 class GRID_MAP<Vector3d>
 {
 public:
-
+//TODO:换成智能指针
     uint8_t* mapData = nullptr;
     Vector3d origin;
     int mapX,mapY,mapZ;
