@@ -9,13 +9,14 @@ find_package(Eigen3 REQUIRED)
 find_package(matplotlib_cpp REQUIRED)
 find_package(Python3 COMPONENTS Development NumPy)
 
-include_directories(./src/task ./src/planner ./src/robot ./src/map)
-file(GLOB SIM_SOURCEFILE ./src/task/*.cpp ./src/planner/*.cpp ./src/robot/*.cpp ./src/map/*.cpp)
+include_directories(./src/task ./src/planner ./src/robot ./src/map ./src/ring_vector)
+file(GLOB SIM_SOURCEFILE ./src/task/*.cpp ./src/planner/*.cpp ./src/robot/*.cpp ./src/map/*.cpp ./src/ring_vector/*.cpp)
 add_library(SIM_LIB STATIC ${SIM_SOURCEFILE})
+
 
 add_executable(test ./src/test.cc)
 target_include_directories(test PRIVATE ${Python2_INCLUDE_DIRS} ${Python2_NumPy_INCLUDE_DIRS} lib)
-target_link_libraries(test Python3::Python Python3::NumPy)
+target_link_libraries(test Python3::Python Python3::NumPy SIM_LIB)
 
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS}) 

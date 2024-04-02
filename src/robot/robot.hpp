@@ -4,6 +4,7 @@
 #include "MP_Hungarian.h"
 #include "graph_searcher.hpp"
 #include "map.hpp"
+#include "ring_vector.hpp"
 
 
 using namespace Eigen;
@@ -14,12 +15,25 @@ using std::vector;
 
 // };
 
+//用vector和一个位置计数器完成滑动窗口
+
+
+
+struct ROBOT_TRACE_POINT
+{
+    Vector2d position;
+    double time;
+};
 class ROBOT_ESTIMATE_STATE
 {
-    uint8_t robotsNum;
-    uint8_t observeSize;
-    vector<Vector2d> trace;
+public:
+    // uint8_t robotsNum;
+    // uint8_t observeSize;//maybe no need
+
+    double pathTime;
+    RING_VECTOR<ROBOT_TRACE_POINT> trace;
     vector<vector<Vector2d>> taskPath;
+    vector<double> taskCost;
     vector<double> taskProb;
 
 };
@@ -34,6 +48,10 @@ public:
 
     //task points
     std::vector<Vector2d> taskPoints;
+    uint8_t taskNum;
+
+    // //init location
+    // Vector2d initPosition;
 
     //total robots num
     uint8_t robotsNum;
@@ -60,12 +78,12 @@ public:
     bool initFlag;
 
 //func:
-    ROBOT(GRID_MAP<Vector2d> map_, std::vector<Vector2d> taskPoints_, uint8_t robotsNum_):map(map_),taskPoints(taskPoints_),robotsNum(robotsNum_)
-    {
-        initFlag = false;
-    }
+    ROBOT(GRID_MAP<Vector2d> map_, std::vector<Vector2d> taskPoints_,Vector2d initPosition_, uint8_t robotsNum_);
     //获取感知模块的输出结果
-    bool ROBOT_GetSenseData();
+    void ROBOT_GetSenseData();
+
+    //kalman跟踪
+    void ROBOT_TraceUpdata(void);
 
     //初始化观测，放在循环里
     bool ROBOT_Init(void);
@@ -79,7 +97,7 @@ public:
     //collision
     bool ROBOT_CollisionSolve(void);
 
-    bool ROBOT_Ctrl(void);
+    void ROBOT_Ctrl(void);
 
     //给外部使用的进程
     void ROBOT_Process(void);
