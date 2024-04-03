@@ -31,10 +31,20 @@ public:
     // uint8_t observeSize;//maybe no need
 
     double pathTime;
+    int targetIndex;
     RING_VECTOR<ROBOT_TRACE_POINT> trace;
     vector<vector<Vector2d>> taskPath;
     vector<double> taskCost;
     vector<double> taskProb;
+
+    ROBOT_ESTIMATE_STATE(int task_num)
+    {
+        targetIndex = -1;
+        taskPath = vector<vector<Vector2d>>(task_num);
+        taskCost = vector<double>(task_num);
+        taskProb = vector<double>(task_num);
+    }
+
 
 };
 
@@ -68,9 +78,12 @@ public:
     std::vector<int8_t> taskState;
 
 //估计
+//TODO:换智能指针
     std::vector<ROBOT_ESTIMATE_STATE*> otherEstimation;
 //规划
     gridPathFinder pathPlanner;
+    vector<vector<Vector2d>> taskPath;
+    vector<double> taskCost;
 //决策
     HungarianAlgorithm allocation;
 

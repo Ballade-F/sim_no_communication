@@ -11,7 +11,7 @@ private:
     uint32_t head_index;
 
 public:
-    RING_VECTOR(int num);
+    RING_VECTOR();
     void push_back(const T& data_);
     void push_pop(const T& data_);
     T& at(uint32_t index);
@@ -21,9 +21,8 @@ public:
 };
 
 template <typename T>
-inline RING_VECTOR<T>::RING_VECTOR(int num)
+inline RING_VECTOR<T>::RING_VECTOR()
 {
-    data = vector<T>(num);
     head_index = 0;
 }
 

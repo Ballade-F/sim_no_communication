@@ -134,6 +134,7 @@ class gridPathFinder
 
 		Vector3d coordRounding(const Vector3d & coord) const;
 		std::vector<Vector3d> getPath();
+		std::vector<Vector2d> getPath(bool flag);
 		std::vector<Vector3d> getVisitedNodes();
 		std::vector<Vector3d> getCloseNodes();
 

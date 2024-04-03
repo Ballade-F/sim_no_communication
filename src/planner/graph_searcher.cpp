@@ -183,6 +183,17 @@ vector<Vector3d> gridPathFinder::getPath()
     return path;
 }
 
+std::vector<Vector2d> gridPathFinder::getPath(bool flag)
+{
+    vector<Vector2d> path;
+
+    for(auto ptr: gridPath)
+        path.push_back(Vector2d(ptr->coord.x(),ptr->coord.y()));
+
+    reverse(path.begin(), path.end());
+    return path;
+}
+
 inline Vector3d gridPathFinder::gridIndex2coord(const Vector3i & index) const
 {
     Vector3d pt;

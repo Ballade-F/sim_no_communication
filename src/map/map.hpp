@@ -4,7 +4,7 @@
 #include <eigen3/Eigen/Eigen>
 using namespace Eigen;
 
-//默认为2d
+//默认为2d，也许用继承更好
 template <typename T>
 class GRID_MAP
 {
