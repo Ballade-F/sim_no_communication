@@ -2,7 +2,7 @@
 
 #include <iostream>
 // #include "rclcpp/rclcpp.hpp"
-#include <eigen3/Eigen/Eigen>
+#include <Eigen/Eigen>
 #include "backward.hpp"
 
 using namespace Eigen;

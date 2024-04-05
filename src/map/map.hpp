@@ -1,7 +1,7 @@
 #pragma once
 
 #include <iostream>
-#include <eigen3/Eigen/Eigen>
+#include <Eigen/Eigen>
 using namespace Eigen;
 
 //默认为2d，也许用继承更好

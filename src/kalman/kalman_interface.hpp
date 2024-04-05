@@ -1,5 +1,4 @@
 
-
 #include <cmath>
 #include <string>
 #include <iostream>
@@ -7,50 +6,44 @@
 #include <Eigen/Dense>
 
 class KalmanInterface {
-    public:
-	/**
-	* @brief Construction of Kalman filter interface class
-	* 
-	* @param dim_x dimension of state(x_k)
-	* @param dim_z dimension of measurement(z_k)
-	* @param dim_u dimension of control(u_k)
-	*/
-	KalmanInterface(int dim_x, int dim_z, int dim_u): 
-		dim_x(dim_x), dim_z(dim_z), dim_u(dim_u) 
+public:
+	KalmanInterface(int dim_x, int dim_z, int dim_u)
+		: dim_x(dim_x), dim_z(dim_z), dim_u(dim_u) 
 	{
 		x_p_k = Eigen::VectorXd::Zero(dim_x, 1);
 		x_l_k = Eigen::VectorXd::Zero(dim_x, 1);
 		x_k = Eigen::VectorXd::Zero(dim_x, 1);
 		z_k = Eigen::VectorXd::Zero(dim_z, 1);
 		A = Eigen::MatrixXd::Identity(dim_x, dim_x);
+		B = Eigen::MatrixXd::Zero(dim_x, dim_u);
+		H = Eigen::MatrixXd::Zero(dim_z, dim_x);
 	    K = Eigen::MatrixXd::Zero(dim_x, dim_z);
 	    Q = Eigen::MatrixXd::Zero(dim_x, dim_x);
 	    P = Eigen::MatrixXd::Zero(dim_x, dim_x);
 	    R = Eigen::MatrixXd::Zero(dim_z, dim_z);
     }
-	/**
-	* @brief initialization of kalman filter
-	*
-	* @param x_k initialization of state
-	*/
-        virtual void init(Eigen::VectorXd &x_k) = 0;
+	KalmanInterface(int dim_x, int dim_z, int dim_u,const Eigen::MatrixXd Q_, const Eigen::MatrixXd R_)
+		: dim_x(dim_x), dim_z(dim_z), dim_u(dim_u), Q(Q_),R(R_)
+	{
+		x_p_k = Eigen::VectorXd::Zero(dim_x, 1);
+		x_l_k = Eigen::VectorXd::Zero(dim_x, 1);
+		x_k = Eigen::VectorXd::Zero(dim_x, 1);
+		z_k = Eigen::VectorXd::Zero(dim_z, 1);
+		A = Eigen::MatrixXd::Identity(dim_x, dim_x);
+		B = Eigen::MatrixXd::Zero(dim_x, dim_u);
+		H = Eigen::MatrixXd::Zero(dim_z, dim_x);
+	    K = Eigen::MatrixXd::Zero(dim_x, dim_z);
+	    P = Eigen::MatrixXd::Zero(dim_x, dim_x);
+	}
 
-        /**
-	* @brief prediction of kalman filter
-	*
-	* @param u controlling quantity
-        * @param t step size
-	*/
-        virtual Eigen::VectorXd predict(Eigen::VectorXd &u, double t) = 0;
 
-        /**
-	* @brief update of kalman filter
-	*
-	* @param z_k measurement quantity
-	*/        
-        virtual Eigen::VectorXd update(Eigen::VectorXd &z_k) = 0;
+	virtual void init(Eigen::VectorXd &x_k) = 0;
 
-    public:
+	virtual Eigen::VectorXd predict(Eigen::VectorXd &u, double t) = 0;
+	
+	virtual Eigen::VectorXd update(Eigen::VectorXd &z_k) = 0;
+
+
 
 	int dim_x, dim_z, dim_u;			
 
@@ -61,10 +54,14 @@ class KalmanInterface {
 	Eigen::VectorXd	u;  // controlling quantity
 
 	Eigen::MatrixXd A;	// state-transition matrix
+	Eigen::MatrixXd B;  //  control quantity transfer matrix
+	Eigen::MatrixXd H;  //  dimensional transformation matrix
+
 	Eigen::MatrixXd	P;  // state error covariance matrix
 	Eigen::MatrixXd	K;  // gain matrix
 	Eigen::MatrixXd	Q;  // process error covariance matrix
 	Eigen::MatrixXd R;  // measurement error covariance matrix
+
 };
 
 

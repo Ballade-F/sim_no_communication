@@ -1,6 +1,6 @@
 #pragma once
 
-#include <eigen3/Eigen/Eigen>
+#include <Eigen/Eigen>
 #include "MP_Hungarian.h"
 #include "graph_searcher.hpp"
 #include "map.hpp"
