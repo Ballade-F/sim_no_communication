@@ -46,6 +46,7 @@ Eigen::VectorXd ExtendKalman::predict(Eigen::VectorXd &u, double t)
 	// return x_p_k;
 }
 
+//TODO: 对v和w限幅
 Eigen::VectorXd ExtendKalman::update(Eigen::VectorXd &z_k) 
 {
 	K = P * H.transpose() * (H * P * H.transpose() +  R).inverse();
