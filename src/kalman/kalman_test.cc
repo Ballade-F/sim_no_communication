@@ -75,7 +75,23 @@ int main() {
     double mean = 0.0;
     double std_dev = 0.1;
 
-    std::vector<double> x(n), y(n);
+    double mean_p = 0.0;
+    double std_dev_p = 0.04;
+
+    std::vector<double> x(n), y(n),x_ob(n),y_ob(n),x_ob2(n),y_ob2(n);
+
+    Matrix<double,2,2> Q;
+    Q(0,0) = 0.01; Q(0,1) = 0;
+    Q(1,0) = 0; Q(1,1) = 0.01;
+    Matrix<double,2,2> R;
+    R(0,0) = 0.0001; R(0,1) = 0;
+    R(1,0) = 0; R(1,1) = 0.0001;
+
+    ExtendKalman kalman(Q,R);
+    VectorXd x_0 = Eigen::VectorXd::Zero(5, 1);
+    VectorXd u = Eigen::VectorXd::Zero(1, 1);
+    VectorXd z = Eigen::VectorXd::Zero(2, 1);
+    kalman.init(x_0);
 
     for(int i = 0; i<n ;++i)
     {
@@ -94,15 +110,26 @@ int main() {
         double vk = v0 + gaussian_distribution(mean, std_dev);
         double wk = w0 + gaussian_distribution(mean, std_dev);
         x_now = forward(x_now,vk,wk,dt);
+        VectorXd x_pred = kalman.predict(u,dt);
+
         x.at(i) = x_now(0,0);
         y.at(i) = x_now(1,0);
+        x_ob.at(i) = x_pred(0,0);
+        y_ob.at(i) = x_pred(1,0);
+
+        z(0,0) = x_now(0,0)+ gaussian_distribution(mean_p, std_dev_p);
+        z(1,0) = x_now(1,0)+ gaussian_distribution(mean_p, std_dev_p);
+        VectorXd x_l = kalman.update(z);
+        x_ob2.at(i) = z(0,0);
+        y_ob2.at(i) = z(1,0);
     }
 
     plt::figure_size(1200, 780);
 
-    plt::plot(x, y);
+    // plt::plot(x, y);
     // Plot a red dashed line from given x and y data.
-    // plt::plot(x, w,"r--");
+    plt::plot(x_ob, y_ob,"r--");
+    plt::plot(x_ob2, y_ob2);
 
     plt::title("Sample figure");
     // Enable legend.

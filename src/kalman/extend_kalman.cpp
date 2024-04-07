@@ -51,6 +51,12 @@ Eigen::VectorXd ExtendKalman::update(Eigen::VectorXd &z_k)
 {
 	K = P * H.transpose() * (H * P * H.transpose() +  R).inverse();
 	x_k = x_p_k + K * (z_k - H*x_p_k);
+
+	//对v和w限幅
+	x_k(3,0) = x_k(3,0)<0?0:x_k(3,0)>0.5?0.5:x_k(3,0);
+	x_k(4,0) = x_k(4,0)<-0.5?-0.5:x_k(4,0)>0.5?0.5:x_k(4,0);
+
+
 	P = P - K * H * P;
 	x_l_k = x_k;
 	return x_k;
