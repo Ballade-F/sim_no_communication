@@ -36,9 +36,81 @@
 // }
 
 #include "extend_kalman.hpp"
+#include "matplotlibcpp.h"
+#include <iostream>
+#include <random>
+#include <cmath>
+namespace plt = matplotlibcpp;
 
-int main()
+using namespace Eigen;
+
+double gaussian_distribution(double mean, double std_dev) {
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    static std::normal_distribution<> dist(mean, std_dev);
+    return dist(gen);
+}
+ 
+VectorXd forward(VectorXd x_, double v_ , double w_, double t_)
 {
+    VectorXd x = x_;
+    x(0,0) += t_ * x_(3,0) * cos(x_(2,0));
+	x(1,0) += t_ * x_(3,0) * sin(x_(2,0));
+	x(2,0) += t_ * x_(4,0);
+    x(3,0) = v_;
+    x(4,0) = w_;
+    return x;
+}
 
+int main() {
+
+    VectorXd x_last = Eigen::VectorXd::Zero(5, 1);
+    VectorXd x_now = x_last;
+    double v0 = 0.4;
+    double w0 = 0.3;
+    double dt = 0.1;
+    int n = 300;
+
+    // 设定均值和标准差
+    double mean = 0.0;
+    double std_dev = 0.1;
+
+    std::vector<double> x(n), y(n);
+
+    for(int i = 0; i<n ;++i)
+    {
+        if(i<100)
+        {
+            w0 = 0.2;
+        }
+        else if(i<200)
+        {
+            w0 = -0.15;
+        }
+        else
+        {
+            w0 = 0.25;
+        }
+        double vk = v0 + gaussian_distribution(mean, std_dev);
+        double wk = w0 + gaussian_distribution(mean, std_dev);
+        x_now = forward(x_now,vk,wk,dt);
+        x.at(i) = x_now(0,0);
+        y.at(i) = x_now(1,0);
+    }
+
+    plt::figure_size(1200, 780);
+
+    plt::plot(x, y);
+    // Plot a red dashed line from given x and y data.
+    // plt::plot(x, w,"r--");
+
+    plt::title("Sample figure");
+    // Enable legend.
+    plt::legend();
+    // Save the image (file format is determined by the extension)
+    // plt::save("./basic.png");
+    plt::show();
     return 0;
 }
+
+

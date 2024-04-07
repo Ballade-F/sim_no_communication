@@ -11,6 +11,7 @@ find_package(Python3 COMPONENTS Development NumPy)
 
 include_directories(./src/task ./src/planner ./src/robot ./src/map ./src/ring_vector ./src/kalman)
 include_directories("/usr/local/include/eigen3")
+include_directories("/usr/include/eigen3")
 file(GLOB SIM_SOURCEFILE ./src/task/*.cpp ./src/planner/*.cpp ./src/robot/*.cpp ./src/map/*.cpp ./src/ring_vector/*.cpp ./src/kalman/*.cpp)
 add_library(SIM_LIB STATIC ${SIM_SOURCEFILE})
 
@@ -28,4 +29,6 @@ add_executable(map_test ./src/map/map_test.cc)
 target_link_libraries(map_test SIM_LIB)
 
 add_executable(kalman_test ./src/kalman/kalman_test.cc)
+target_include_directories(kalman_test PRIVATE ${Python2_INCLUDE_DIRS} ${Python2_NumPy_INCLUDE_DIRS} lib)
+target_link_libraries(kalman_test Python3::Python Python3::NumPy SIM_LIB)
 target_link_libraries(kalman_test SIM_LIB)

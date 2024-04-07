@@ -15,7 +15,7 @@ Eigen::VectorXd ExtendKalman::predict(Eigen::VectorXd &u, double t)
 	Eigen::VectorXd delta_x = Eigen::VectorXd::Zero(dim_x, 1);
 	delta_x(0,0) = t * x_l_k(3,0) * cos(x_l_k(2,0));
 	delta_x(1,0) = t * x_l_k(3,0) * sin(x_l_k(2,0));
-	delta_x(3,0) = t * x_l_k(4,0);
+	delta_x(2,0) = t * x_l_k(4,0);
 
 	x_p_k = x_l_k + delta_x;
 
