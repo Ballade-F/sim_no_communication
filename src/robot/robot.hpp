@@ -31,6 +31,7 @@ public:
     // uint8_t observeSize;//maybe no need
 
     double pathTime;
+    double distance;
     int targetIndex;
     RING_VECTOR<ROBOT_TRACE_POINT> trace;
     vector<vector<Vector2d>> taskPath;
@@ -42,19 +43,16 @@ public:
     ROBOT_ESTIMATE_STATE(int task_num,Eigen::Matrix2d Q_, Eigen::Matrix2d R_):kalman(Q_,R_)
     {
         targetIndex = -1;
+        pathTime = 0;
+        distance = 0;
         taskPath = vector<vector<Vector2d>>(task_num);
         taskCost = vector<double>(task_num);
         taskProb = vector<double>(task_num);
 
-        // Matrix<double,2,2> Q;
-        // Q(0,0) = 0.01; Q(0,1) = 0;
-        // Q(1,0) = 0; Q(1,1) = 0.01;
-        // Matrix<double,2,2> R;
-        // R(0,0) = 0.0001; R(0,1) = 0;
-        // R(1,0) = 0; R(1,1) = 0.0001;
-        // kalman = ExtendKalman(Q,R);
-    }
+        //TODO:trace.push_back(init_point);
 
+    }
+    void ESTIMATE_CalculateProb(void);
 
 };
 
@@ -75,6 +73,11 @@ public:
 
     //total robots num
     uint8_t robotsNum;
+
+    //observe time
+    double dt = 0.1;
+
+    double timeStamp;
 
 //性能相关配置参数
     uint8_t observeSize;
@@ -106,7 +109,7 @@ public:
     void ROBOT_GetSenseData();
 
     //kalman跟踪
-    void ROBOT_TraceUpdata(void);
+    void ROBOT_TraceUpdata(double t);
 
     //初始化观测，放在循环里
     bool ROBOT_Init(void);
@@ -124,5 +127,9 @@ public:
 
     //给外部使用的进程
     void ROBOT_Process(void);
+
+
+
+    inline double ROBOT_distanceL2(Vector2d x1, Vector2d x2);
 
 };

@@ -76,7 +76,7 @@ int main() {
     double std_dev = 0.1;
 
     double mean_p = 0.0;
-    double std_dev_p = 0.04;
+    double std_dev_p = 0.001;
 
     std::vector<double> x(n), y(n),x_ob(n),y_ob(n),x_ob2(n),y_ob2(n);
 
@@ -117,8 +117,11 @@ int main() {
         x_ob.at(i) = x_pred(0,0);
         y_ob.at(i) = x_pred(1,0);
 
-        z(0,0) = x_now(0,0)+ gaussian_distribution(mean_p, std_dev_p);
-        z(1,0) = x_now(1,0)+ gaussian_distribution(mean_p, std_dev_p);
+        // z(0,0) = x_now(0,0)+ gaussian_distribution(mean_p, std_dev_p);
+        // z(1,0) = x_now(1,0)+ gaussian_distribution(mean_p, std_dev_p);
+        
+        z(0,0) = x_now(0,0);
+        z(1,0) = x_now(1,0);
         VectorXd x_l = kalman.update(z);
         x_ob2.at(i) = z(0,0);
         y_ob2.at(i) = z(1,0);
