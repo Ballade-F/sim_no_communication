@@ -18,11 +18,18 @@ ROBOT::ROBOT(GRID_MAP<Vector2d> map_, std::vector<Vector2d> taskPoints_, Vector2
         }
     }
     taskNum = taskPoints.size();
+    Matrix<double,2,2> Q;
+    Q(0,0) = 0.01; Q(0,1) = 0;
+    Q(1,0) = 0; Q(1,1) = 0.01;
+    Matrix<double,2,2> R;
+    R(0,0) = 0.0001; R(0,1) = 0;
+    R(1,0) = 0; R(1,1) = 0.0001;
     for(int i = 0; i<robotsNum-1;++i)
     {
-        ROBOT_ESTIMATE_STATE* other_state_ptr = new ROBOT_ESTIMATE_STATE(taskNum);
+        ROBOT_ESTIMATE_STATE* other_state_ptr = new ROBOT_ESTIMATE_STATE(taskNum,Q,R);
         otherEstimation.push_back(other_state_ptr);
     }
+    otherPosition = vector<Vector2d>(robotsNum-1);
 }
 
 void ROBOT::ROBOT_GetSenseData()
@@ -31,7 +38,7 @@ void ROBOT::ROBOT_GetSenseData()
 
 void ROBOT::ROBOT_TraceUpdata(void)
 {
-
+    
 }
 
 bool ROBOT::ROBOT_Init(void)

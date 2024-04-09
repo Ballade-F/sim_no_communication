@@ -5,7 +5,7 @@
 #include "graph_searcher.hpp"
 #include "map.hpp"
 #include "ring_vector.hpp"
-
+#include "extend_kalman.hpp"
 
 using namespace Eigen;
 using std::vector;
@@ -37,12 +37,22 @@ public:
     vector<double> taskCost;
     vector<double> taskProb;
 
-    ROBOT_ESTIMATE_STATE(int task_num)
+    ExtendKalman kalman;
+
+    ROBOT_ESTIMATE_STATE(int task_num,Eigen::Matrix2d Q_, Eigen::Matrix2d R_):kalman(Q_,R_)
     {
         targetIndex = -1;
         taskPath = vector<vector<Vector2d>>(task_num);
         taskCost = vector<double>(task_num);
         taskProb = vector<double>(task_num);
+
+        // Matrix<double,2,2> Q;
+        // Q(0,0) = 0.01; Q(0,1) = 0;
+        // Q(1,0) = 0; Q(1,1) = 0.01;
+        // Matrix<double,2,2> R;
+        // R(0,0) = 0.0001; R(0,1) = 0;
+        // R(1,0) = 0; R(1,1) = 0.0001;
+        // kalman = ExtendKalman(Q,R);
     }
 
 
