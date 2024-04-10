@@ -17,7 +17,7 @@ using std::vector;
 
 //用vector和一个位置计数器完成滑动窗口
 
-
+inline double robot_distanceL2(Vector2d x1, Vector2d x2);
 
 struct ROBOT_TRACE_POINT
 {
@@ -31,11 +31,12 @@ public:
     // uint8_t observeSize;//maybe no need
 
     double pathTime;
-    double distance;
+    double distance;//trace中最旧的点到算path点的距离
     int targetIndex;
     RING_VECTOR<ROBOT_TRACE_POINT> trace;
     vector<vector<Vector2d>> taskPath;
-    vector<RING_VECTOR<ROBOT_TRACE_POINT>> estimateTrace;
+    vector<int> taskPathLastIndex;
+    vector<RING_VECTOR<Vector2d>> estimateTrace;
     vector<double> taskCost;
     vector<double> taskProb;
 
@@ -47,13 +48,19 @@ public:
         pathTime = 0;
         distance = 0;
         taskPath = vector<vector<Vector2d>>(task_num);
+        estimateTrace = vector<RING_VECTOR<Vector2d>>(task_num);
+        taskPathLastIndex = vector<int>(task_num);
         taskCost = vector<double>(task_num);
         taskProb = vector<double>(task_num);
 
         //TODO:trace.push_back(init_point);
 
     }
-    void ESTIMATE_CalculateProb(void);
+    inline void ESTIMATE_MatchPathTrace(void);
+    inline void ESTIMATE_CalculateProb(void);
+    inline void ESTIMATE_EstimateTraceUpdate(ROBOT_TRACE_POINT new_trace);
+
+    //TODO:每次update的时候用滑窗，不用全计算，只有重规划时需要全计算。distance需要动态调整
 
 };
 
@@ -80,7 +87,7 @@ public:
 
     double timeStamp;
 
-//性能相关配置参数
+//性能相关配置参数,大于等于2
     uint8_t observeSize;
 //感知
 //TODO:用sophus
@@ -131,6 +138,6 @@ public:
 
 
 
-    inline double ROBOT_distanceL2(Vector2d x1, Vector2d x2);
+    
 
 };

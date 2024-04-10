@@ -59,7 +59,7 @@ void ROBOT::ROBOT_TraceUpdata(double t)
         cost.push_back(cost_raw);
         for(int j = 0;j<otherPosition.size();++j)
         {
-            cost.at(i).at(j) = ROBOT_distanceL2(otherPosition.at(i),new_point.at(j));
+            cost.at(i).at(j) = robot_distanceL2(otherPosition.at(i),new_point.at(j));
         }
     }
     // for(int i = 0;i<otherPosition.size();++i)
@@ -68,7 +68,7 @@ void ROBOT::ROBOT_TraceUpdata(double t)
     //     cost.push_back(cost_raw);
     //     for(int j = 0;j<robotsNum-1;++j)
     //     {
-    //         cost.at(i).push_back(ROBOT_distanceL2(otherPosition.at(i),new_point.at(j)));
+    //         cost.at(i).push_back(robot_distanceL2(otherPosition.at(i),new_point.at(j)));
     //     }
     // }
     vector<int> assignment;
@@ -87,10 +87,12 @@ void ROBOT::ROBOT_TraceUpdata(double t)
             Vector2d posterior_point = otherEstimation.at(i)->kalman.update(observe_point);
             ROBOT_TRACE_POINT new_trace = {posterior_point,global_time};
 
-            otherEstimation.at(i)->distance += ROBOT_distanceL2(posterior_point,otherEstimation.at(i)->trace.back().position);
+            // otherEstimation.at(i)->distance += robot_distanceL2(posterior_point,otherEstimation.at(i)->trace.back().position);
 
             if(otherEstimation.at(i)->trace.size()==observeSize)
             {
+                otherEstimation.at(i)->distance += robot_distanceL2(otherEstimation.at(i)->trace.at(0).position,otherEstimation.at(i)->trace.at(1).position);
+                otherEstimation.at(i)->ESTIMATE_EstimateTraceUpdate(new_trace);
                 otherEstimation.at(i)->trace.push_pop(new_trace);
             }
             else
@@ -110,6 +112,7 @@ bool ROBOT::ROBOT_Init(void)
     //卡尔曼滤波匹配，加入trace
     ROBOT_TraceUpdata(global_time);
     //判断每个robot的trace观测数量是否足够
+    //TODO:处理没看到的情况
     for(uint8_t i = 0;i<robotsNum-1;++i)
     {
         if(otherEstimation.at(i)->trace.size()==observeSize && ready_flag.at(i)==false)
@@ -137,9 +140,11 @@ bool ROBOT::ROBOT_Init(void)
                              taskPoints.at(j).y(),
                              0);
                 otherEstimation.at(i)->taskCost.at(j) = pathPlanner.graphSearch(start,end,false);
+                //TODO:cost为-1表示没找到路，要做处理
                 otherEstimation.at(i)->taskPath.at(j) = pathPlanner.getPath(true);
-
             }
+            //
+            otherEstimation.at(i)->ESTIMATE_MatchPathTrace();
         }
         Vector3d start(selfPosition.x(),
                        selfPosition.y(),
@@ -157,6 +162,7 @@ bool ROBOT::ROBOT_Init(void)
         }
 
         //TODO:算一次task allocation
+        //TODO:对所有robot做一次target估计
 
         return true;
     }
@@ -200,15 +206,112 @@ void ROBOT::ROBOT_Process(void)
     //4.执行自己的命令
 }
 
-inline double ROBOT::ROBOT_distanceL2(Vector2d x1, Vector2d x2)
+
+inline void ROBOT_ESTIMATE_STATE::ESTIMATE_MatchPathTrace(void)
 {
-    return (x1-x2).norm();
+    //匹配path中的trace点
+    int trace_total = trace.size();
+    for(uint8_t i = 0;i<taskPath.size();++i)
+    {
+        double path_dis = 0;
+        double trace_dis = distance;
+        int trace_count = 0;
+        for(int j = 0;j<taskPath.at(i).size();++j)
+        {
+            if(j!=0)
+            {
+                path_dis += robot_distanceL2(taskPath.at(i).at(j),taskPath.at(i).at(j-1));
+            }
+            while(trace_dis<path_dis)
+            {
+                if(j==0)
+                {
+                    estimateTrace.at(i).push_back(taskPath.at(i).at(0));
+                }
+                else
+                {
+                    double proportion = (path_dis-trace_dis)/robot_distanceL2(taskPath.at(i).at(j),taskPath.at(i).at(j-1));
+                    Vector2d path_match = proportion*taskPath.at(i).at(j-1) + (1-proportion)*taskPath.at(i).at(j);
+                    estimateTrace.at(i).push_back(path_match);
+                }
+                trace_count++;
+                trace_dis += robot_distanceL2(trace.at(trace_count-1).position,trace.at(trace_count).position);
+                if(trace_count==trace_total)
+                {
+                    break;
+                }
+                // if(trace_dis>=path_dis)
+            }
+            if(trace_count==trace_total)
+            {
+                taskPathLastIndex.at(i) = j;
+                break;
+            }
+
+            // otherEstimation.at(i)->estimateTrace.at(j).push_back()
+        }
+        while(trace_count<trace_total)
+        {
+            estimateTrace.at(i).push_back(taskPath.at(i).back());
+            trace_count ++;
+        }
+    }
+
 }
 
-void ROBOT_ESTIMATE_STATE::ESTIMATE_CalculateProb(void)
+inline void ROBOT_ESTIMATE_STATE::ESTIMATE_CalculateProb(void)
 {
-    for(int i=0;i<taskPath.size();++i)
+    for(uint8_t i=0;i<taskPath.size();++i)
     {
-        
+
     }
+}
+
+inline void ROBOT_ESTIMATE_STATE::ESTIMATE_EstimateTraceUpdate(ROBOT_TRACE_POINT new_trace)
+{
+    for(uint8_t i = 0;i<taskPath.size();++i)
+    {
+        //离estimateTrace最后一个点最近的后面一个path点，到他的距离
+        double path_dis = robot_distanceL2(taskPath.at(i).at(taskPathLastIndex.at(i)),estimateTrace.at(i).back());
+        double trace_dis = robot_distanceL2(trace.back().position,new_trace.position);
+        bool find_flag = false;
+        for(int j = taskPathLastIndex.at(i);j<taskPath.at(i).size();++j)
+        {
+            if(j!=taskPathLastIndex.at(i))
+            {
+                path_dis += robot_distanceL2(taskPath.at(i).at(j),taskPath.at(i).at(j-1));
+            }
+            if(trace_dis<path_dis)
+            {
+                if(j==0)
+                {
+                    estimateTrace.at(i).push_pop(taskPath.at(i).at(0));
+                }
+                else if(j==taskPathLastIndex.at(i))
+                {
+                    double proportion = (path_dis-trace_dis)/robot_distanceL2(taskPath.at(i).at(j),estimateTrace.at(i).back());
+                    Vector2d path_match = proportion*estimateTrace.at(i).back() + (1-proportion)*taskPath.at(i).at(j);
+                    estimateTrace.at(i).push_pop(path_match);
+                }
+                else
+                {
+                    double proportion = (path_dis-trace_dis)/robot_distanceL2(taskPath.at(i).at(j),taskPath.at(i).at(j-1));
+                    Vector2d path_match = proportion*taskPath.at(i).at(j-1) + (1-proportion)*taskPath.at(i).at(j);
+                    estimateTrace.at(i).push_pop(path_match);
+                }
+                taskPathLastIndex.at(i) = j;
+                find_flag = true;
+                break;
+            }
+        }
+        if(!find_flag)
+        {
+            estimateTrace.at(i).push_pop(taskPath.at(i).back());
+        }
+    }
+}
+
+inline double robot_distanceL2(Vector2d x1, Vector2d x2)
+{
+    return (x1-x2).norm();
 }
