@@ -204,3 +204,11 @@ inline double ROBOT::ROBOT_distanceL2(Vector2d x1, Vector2d x2)
 {
     return (x1-x2).norm();
 }
+
+void ROBOT_ESTIMATE_STATE::ESTIMATE_CalculateProb(void)
+{
+    for(int i=0;i<taskPath.size();++i)
+    {
+        
+    }
+}

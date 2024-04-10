@@ -35,6 +35,7 @@ public:
     int targetIndex;
     RING_VECTOR<ROBOT_TRACE_POINT> trace;
     vector<vector<Vector2d>> taskPath;
+    vector<RING_VECTOR<ROBOT_TRACE_POINT>> estimateTrace;
     vector<double> taskCost;
     vector<double> taskProb;
 
