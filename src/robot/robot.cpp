@@ -259,22 +259,38 @@ inline void ROBOT_ESTIMATE_STATE::ESTIMATE_MatchPathTrace(void)
 
 }
 
+//TODO:先拿欧氏距离算，后面再换成跟概率有关的
 inline void ROBOT_ESTIMATE_STATE::ESTIMATE_CalculateProb(void)
 {
+    matchDis.clear();
+    double sum_dis = 0;
     for(uint8_t i=0;i<taskPath.size();++i)
     {
-
+        for(int j=0;j<trace.size();++j)
+        {
+            matchDis.at(i) += robot_distanceL2(trace.at(j).position,estimateTrace.at(i).at(j));
+        }
+        sum_dis += exp(matchDis.at(i));
+    }
+    for(uint8_t i=0;i<taskPath.size();++i)
+    {
+        taskProb.at(i) = exp(matchDis.at(i))/sum_dis;
     }
 }
 
 inline void ROBOT_ESTIMATE_STATE::ESTIMATE_EstimateTraceUpdate(ROBOT_TRACE_POINT new_trace)
 {
+    double sum_dis = 0;
     for(uint8_t i = 0;i<taskPath.size();++i)
     {
         //离estimateTrace最后一个点最近的后面一个path点，到他的距离
         double path_dis = robot_distanceL2(taskPath.at(i).at(taskPathLastIndex.at(i)),estimateTrace.at(i).back());
         double trace_dis = robot_distanceL2(trace.back().position,new_trace.position);
         bool find_flag = false;
+        
+        //对每个task的path-trace更新距离之和
+        matchDis.at(i) -= robot_distanceL2(trace.at(0).position,estimateTrace.at(i).at(0));
+
         for(int j = taskPathLastIndex.at(i);j<taskPath.at(i).size();++j)
         {
             if(j!=taskPathLastIndex.at(i))
@@ -308,7 +324,19 @@ inline void ROBOT_ESTIMATE_STATE::ESTIMATE_EstimateTraceUpdate(ROBOT_TRACE_POINT
         {
             estimateTrace.at(i).push_pop(taskPath.at(i).back());
         }
+        //对每个task的path-trace更新距离之和
+        matchDis.at(i) += robot_distanceL2(new_trace.position,estimateTrace.at(i).back());
+        sum_dis += exp(matchDis.at(i));
     }
+    for(uint8_t i=0;i<taskPath.size();++i)
+    {
+        taskProb.at(i) = exp(matchDis.at(i))/sum_dis;
+    }
+}
+
+inline void ROBOT_ESTIMATE_STATE::ESTIMATE_ProbUpdate(void)
+{
+
 }
 
 inline double robot_distanceL2(Vector2d x1, Vector2d x2)

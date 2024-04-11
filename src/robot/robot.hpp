@@ -39,6 +39,7 @@ public:
     vector<RING_VECTOR<Vector2d>> estimateTrace;
     vector<double> taskCost;
     vector<double> taskProb;
+    vector<double> matchDis;
 
     ExtendKalman kalman;
 
@@ -52,6 +53,7 @@ public:
         taskPathLastIndex = vector<int>(task_num);
         taskCost = vector<double>(task_num);
         taskProb = vector<double>(task_num);
+        matchDis = vector<double>(task_num);
 
         //TODO:trace.push_back(init_point);
 
@@ -59,6 +61,7 @@ public:
     inline void ESTIMATE_MatchPathTrace(void);
     inline void ESTIMATE_CalculateProb(void);
     inline void ESTIMATE_EstimateTraceUpdate(ROBOT_TRACE_POINT new_trace);
+    inline void ESTIMATE_ProbUpdate(void);
 
     //TODO:每次update的时候用滑窗，不用全计算，只有重规划时需要全计算。distance需要动态调整
 
