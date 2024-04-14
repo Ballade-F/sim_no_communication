@@ -30,7 +30,7 @@ public:
     // uint8_t robotsNum;
     // uint8_t observeSize;//maybe no need
 
-    double pathTime;
+    double pathTime;//path的时间
     double distance;//trace中最旧的点到算path点的距离
     int targetIndex;
     RING_VECTOR<ROBOT_TRACE_POINT> trace;
@@ -39,14 +39,16 @@ public:
     vector<RING_VECTOR<Vector2d>> estimateTrace;
     vector<double> taskCost;
     vector<double> taskProb;
+    double probThreshold;
     vector<double> matchDis;
 
     ExtendKalman kalman;
 
-    ROBOT_ESTIMATE_STATE(int task_num,Eigen::Matrix2d Q_, Eigen::Matrix2d R_):kalman(Q_,R_)
+    ROBOT_ESTIMATE_STATE(int task_num,double prob_threshold,Eigen::Matrix2d Q_, Eigen::Matrix2d R_)
+                        :probThreshold(prob_threshold),kalman(Q_,R_)
     {
         targetIndex = -1;
-        pathTime = 0;
+        pathTime = -1;
         distance = 0;
         taskPath = vector<vector<Vector2d>>(task_num);
         estimateTrace = vector<RING_VECTOR<Vector2d>>(task_num);
@@ -58,10 +60,10 @@ public:
         //TODO:trace.push_back(init_point);
 
     }
-    inline void ESTIMATE_MatchPathTrace(void);
-    inline void ESTIMATE_CalculateProb(void);
-    inline void ESTIMATE_EstimateTraceUpdate(ROBOT_TRACE_POINT new_trace);
-    inline void ESTIMATE_ProbUpdate(void);
+    inline void ESTIMATE_matchPathTrace(void);
+    inline void ESTIMATE_calculateProb(void);
+    inline void ESTIMATE_JudgeTarget(ROBOT_TRACE_POINT old_trace,const vector<Vector2d> &task_points, gridPathFinder &path_planner);
+    inline void ESTIMATE_ProbUpdate(ROBOT_TRACE_POINT old_trace);
 
     //TODO:每次update的时候用滑窗，不用全计算，只有重规划时需要全计算。distance需要动态调整
 
@@ -110,12 +112,12 @@ public:
     vector<double> taskCost;
 //决策
     HungarianAlgorithm allocation;
-
+    int targetIndex;
 //flag
     bool initFlag;
 
 //func:
-    ROBOT(GRID_MAP<Vector2d> map_, std::vector<Vector2d> taskPoints_,Vector2d initPosition_, uint8_t robotsNum_);
+    ROBOT(GRID_MAP<Vector2d> map_, std::vector<Vector2d> taskPoints_,Vector2d initPosition_, uint8_t robotsNum_,double prob_threshold);
     //获取感知模块的输出结果
     void ROBOT_GetSenseData();
 
