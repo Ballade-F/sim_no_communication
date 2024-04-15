@@ -25,7 +25,7 @@ int main()
 
     int robot_num = 5;
 
-    ROBOT robot(map,task_points,init_points.at(0),robot_num);
+    // ROBOT robot(map,task_points,init_points.at(0),robot_num);
 
     return 0;
 }
