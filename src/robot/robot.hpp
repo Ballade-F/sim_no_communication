@@ -35,12 +35,14 @@ public:
     int targetIndex;
     RING_VECTOR<ROBOT_TRACE_POINT> trace;
     vector<vector<Vector2d>> taskPath;
-    vector<int> taskPathLastIndex;
-    vector<RING_VECTOR<Vector2d>> estimateTrace;
+    // vector<int> taskPathLastIndex;
+    // vector<RING_VECTOR<Vector2d>> estimateTrace;
+    // vector<double> matchDis;
+    vector<Vector2d> estPoint;
     vector<double> taskCost;
     vector<double> taskProb;
     double probThreshold;
-    vector<double> matchDis;
+
 
     ExtendKalman kalman;
 
@@ -51,21 +53,28 @@ public:
         pathTime = -1;
         distance = 0;
         taskPath = vector<vector<Vector2d>>(task_num);
-        estimateTrace = vector<RING_VECTOR<Vector2d>>(task_num);
-        taskPathLastIndex = vector<int>(task_num);
+        // estimateTrace = vector<RING_VECTOR<Vector2d>>(task_num);
+        
+        // matchDis = vector<double>(task_num);
+        estPoint = vector<Vector2d>(task_num);
+        // taskPathLastIndex = vector<int>(task_num,0);
         taskCost = vector<double>(task_num);
         taskProb = vector<double>(task_num);
-        matchDis = vector<double>(task_num);
+
 
         //TODO:trace.push_back(init_point);
 
     }
-    inline void ESTIMATE_matchPathTrace(void);
-    inline void ESTIMATE_calculateProb(void);
-    inline void ESTIMATE_JudgeTarget(ROBOT_TRACE_POINT old_trace,const vector<Vector2d> &task_points, gridPathFinder &path_planner);
-    inline void ESTIMATE_ProbUpdate(ROBOT_TRACE_POINT old_trace);
+    // inline void ESTIMATE_matchPathTrace(void);
+    // inline void ESTIMATE_calculateProb(void);
+    // inline void ESTIMATE_ProbUpdate(ROBOT_TRACE_POINT old_trace);
+    inline void ESTIMATE_JudgeTarget(const vector<Vector2d> &task_points, gridPathFinder &path_planner);
+    inline Vector2d ESTIMATE_EstObserve(Vector2d new_point);
+    inline void ESTIMATE_estUpdate(void);
+    inline void ESTIMATE_probUpdate(void);
+    inline Vector2d ESTIMATE_findEst(int path_idx, double trace_dis);
 
-    //TODO:每次update的时候用滑窗，不用全计算，只有重规划时需要全计算。distance需要动态调整
+
 
 };
 
@@ -86,6 +95,9 @@ public:
 
     //total robots num
     uint8_t robotsNum;
+
+    //task reallocation count
+    int taskReallocReload;
 
     //observe time
     double dt = 0.1;
@@ -113,11 +125,12 @@ public:
 //决策
     HungarianAlgorithm allocation;
     int targetIndex;
+    int taskReallocCount;
 //flag
     bool initFlag;
 
 //func:
-    ROBOT(GRID_MAP<Vector2d> map_, std::vector<Vector2d> taskPoints_,Vector2d initPosition_, uint8_t robotsNum_,double prob_threshold);
+    ROBOT(GRID_MAP<Vector2d> map_, std::vector<Vector2d> taskPoints_,Vector2d initPosition_, uint8_t robotsNum_,double prob_threshold,int task_count_reload);
     //获取感知模块的输出结果
     void ROBOT_GetSenseData();
 
