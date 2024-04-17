@@ -9,6 +9,8 @@
 
 using namespace Eigen;
 using std::vector;
+using std::cout;
+using std::endl;
 
 // struct ROBOT_DATA
 // {
@@ -131,6 +133,7 @@ public:
     double ctrlV = 0.3;
     double ctrlW;
     double ctrlWMax = 0.5;
+    double ctrlVMax = 0.3;
     //pid
     double ctrlPidWp = 1;
     //前瞻距离

@@ -25,8 +25,8 @@ ROBOT::ROBOT(GRID_MAP<Vector2d> map_, std::vector<Vector2d> taskPoints_, std::ve
     }
     
     Matrix<double,2,2> Q;
-    Q(0,0) = 0.01; Q(0,1) = 0;
-    Q(1,0) = 0; Q(1,1) = 0.01;
+    Q(0,0) = 0.02; Q(0,1) = 0;
+    Q(1,0) = 0; Q(1,1) = 0.02;
     Matrix<double,2,2> R;
     R(0,0) = 0.0001; R(0,1) = 0;
     R(1,0) = 0; R(1,1) = 0.0001;
@@ -34,6 +34,8 @@ ROBOT::ROBOT(GRID_MAP<Vector2d> map_, std::vector<Vector2d> taskPoints_, std::ve
     for(int i = 0; i<robotsNum-1;++i)
     {
         ROBOT_ESTIMATE_STATE* other_state_ptr = new ROBOT_ESTIMATE_STATE(taskNum,prob_threshold,initPosition_.at(i),Q,R);
+        x_0(0) = initPosition_.at(i).x();
+        x_0(1) = initPosition_.at(i).y();
         other_state_ptr->kalman.init(x_0);
         otherEstimation.push_back(other_state_ptr);
     }
@@ -68,6 +70,12 @@ bool ROBOT::ROBOT_Init(double t)
     {
         for(uint8_t i = 0;i<robotsNum-1;++i)
         {
+            //cout trace
+            for(uint8_t j = 0;j<otherEstimation.at(i)->trace.size();++j)
+            {
+                cout<<otherEstimation.at(i)->trace.at(j).position.x()<<" "<<otherEstimation.at(i)->trace.at(j).position.y()<<endl;
+            }
+            cout << " "<<endl;
             //记录计算path的时刻
             otherEstimation.at(i)->pathTime = otherEstimation.at(i)->trace.back().time;
             Vector3d start(otherEstimation.at(i)->trace.back().position.x(),
@@ -116,6 +124,18 @@ bool ROBOT::ROBOT_Init(double t)
             robot_cost.push_back(taskCost.at(j));
         }
         cost.push_back(robot_cost);
+
+        //cout cost
+        for(uint8_t i = 0;i<robotsNum;++i)
+        {
+            for(uint8_t j = 0;j<taskNum;++j)
+            {
+                cout<<cost.at(i).at(j)<<" ";
+            }
+            cout<<endl;
+        }
+        
+
         vector<int> assignment;
         allocation.Solve(cost,assignment);
         for(uint8_t i = 0;i<robotsNum-1;++i)
@@ -139,41 +159,42 @@ void ROBOT::ROBOT_Update(double t)
     //卡尔曼滤波匹配，加入trace
     ROBOT_TraceUpdata(t);
 
-    if(taskReallocCount<=0)
-    {
-        for(uint8_t i = 0;i<robotsNum-1;++i)
-        {
-            if(otherEstimation.at(i)->targetIndex==targetIndex)
-            {
-                Vector3d start(otherEstimation.at(i)->trace.back().position.x(),
-                            otherEstimation.at(i)->trace.back().position.y(),
-                            0);
-                Vector3d end(taskPoints.at(targetIndex).x(),
-                            taskPoints.at(targetIndex).y(),
-                            0);
-                pathPlanner.resetUsedGrids();
-                double other_cost = pathPlanner.graphSearch(start,end,false);
+    // if(taskReallocCount<=0)
+    // {
+    //     for(uint8_t i = 0;i<robotsNum-1;++i)
+    //     {
+    //         if(otherEstimation.at(i)->targetIndex==targetIndex)
+    //         {
+    //             Vector3d start(otherEstimation.at(i)->trace.back().position.x(),
+    //                         otherEstimation.at(i)->trace.back().position.y(),
+    //                         0);
+    //             Vector3d end(taskPoints.at(targetIndex).x(),
+    //                         taskPoints.at(targetIndex).y(),
+    //                         0);
+    //             pathPlanner.resetUsedGrids();
+    //             double other_cost = pathPlanner.graphSearch(start,end,false);
                 
-                Vector3d self_start(selfPosition.x(),
-                                selfPosition.y(),
-                                0);
-                pathPlanner.resetUsedGrids();
-                double self_cost = pathPlanner.graphSearch(self_start,end,false);
-                if(other_cost<self_cost)
-                {
-                    ROBOT_CollisionSolve();
-                    break;
-                }
-            }
-        }
-    }
-    else
-    {
-        taskReallocCount--;
-    }
+    //             Vector3d self_start(selfPosition.x(),
+    //                             selfPosition.y(),
+    //                             0);
+    //             pathPlanner.resetUsedGrids();
+    //             double self_cost = pathPlanner.graphSearch(self_start,end,false);
+    //             if(other_cost<self_cost)
+    //             {
+    //                 ROBOT_CollisionSolve();
+    //                 break;
+    //             }
+    //         }
+    //     }
+    // }
+    // else
+    // {
+    //     taskReallocCount--;
+    // }
 
     
     //4.执行自己的命令
+    ROBOT_Ctrl();
 }
 
 
@@ -380,6 +401,7 @@ void ROBOT::ROBOT_Ctrl(void)
     if(min_idx==taskPath.at(targetIndex).size()-1)
     {
         track_point = taskPath.at(targetIndex).back();
+        ctrlV = min_dis;
     }
     else
     {
@@ -399,6 +421,7 @@ void ROBOT::ROBOT_Ctrl(void)
     }
     ctrlW = ctrlPidWp * angle_diff;
     ctrlW = ctrlW>ctrlWMax?ctrlWMax : ctrlW<-ctrlWMax?-ctrlWMax:ctrlW;
+    ctrlV = ctrlV>ctrlVMax?ctrlVMax:ctrlV<-ctrlVMax?-ctrlVMax:ctrlV;
 }
 
 
