@@ -28,7 +28,18 @@ target_link_libraries(search_test ${OpenCV_LIBS} SIM_LIB)
 add_executable(map_test ./src/map/map_test.cc)
 target_link_libraries(map_test SIM_LIB)
 
+add_executable(vector_test ./src/ring_vector/vector_test.cc)
+target_link_libraries(vector_test SIM_LIB)
+
+add_executable(task_test ./src/task/task_test.cc)
+target_link_libraries(task_test SIM_LIB)
+
 add_executable(kalman_test ./src/kalman/kalman_test.cc)
 target_include_directories(kalman_test PRIVATE ${Python2_INCLUDE_DIRS} ${Python2_NumPy_INCLUDE_DIRS} lib)
 target_link_libraries(kalman_test Python3::Python Python3::NumPy SIM_LIB)
 target_link_libraries(kalman_test SIM_LIB)
+
+add_executable(test_2_1 ./src/test_2_1.cc)
+target_include_directories(test_2_1 PRIVATE ${Python2_INCLUDE_DIRS} ${Python2_NumPy_INCLUDE_DIRS} lib)
+target_link_libraries(test_2_1 Python3::Python Python3::NumPy SIM_LIB)
+target_link_libraries(test_2_1 SIM_LIB)
