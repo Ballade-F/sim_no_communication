@@ -31,8 +31,8 @@ Eigen::VectorXd ExtendKalman::predict(Eigen::VectorXd &u, double t)
 	Eigen::MatrixXd W = Eigen::MatrixXd::Zero(5, 2);
 	W(0,0) = cos(x_l_k(2, 0)) * pow(t, 2) / 2;
 	W(1,0) = sin(x_l_k(2, 0)) * pow(t, 2) / 2;
-	W(2,0) = t;
-	W(3,1) = pow(t, 2) / 2;
+	W(2,1) = pow(t, 2) / 2;
+	W(3,0) = t;
 	W(4,1) = t;
 
 	P = A * P * A.transpose() + W * Q * W.transpose();
@@ -53,8 +53,10 @@ Eigen::VectorXd ExtendKalman::update(Eigen::VectorXd &z_k)
 	x_k = x_p_k + K * (z_k - H*x_p_k);
 
 	//对v和w限幅
-	x_k(3,0) = x_k(3,0)<0?0:x_k(3,0)>0.5?0.5:x_k(3,0);
-	x_k(4,0) = x_k(4,0)<-0.5?-0.5:x_k(4,0)>0.5?0.5:x_k(4,0);
+	double v_max = 0.8;
+	double w_max = 0.6;
+	x_k(3,0) = x_k(3,0)<-v_max?-v_max:x_k(3,0)>v_max?v_max:x_k(3,0);
+	x_k(4,0) = x_k(4,0)<-w_max?-w_max:x_k(4,0)>w_max?w_max:x_k(4,0);
 
 
 	P = P - K * H * P;

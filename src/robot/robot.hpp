@@ -12,14 +12,13 @@ using std::vector;
 using std::cout;
 using std::endl;
 
-// struct ROBOT_DATA
-// {
-
-// };
-
-//用vector和一个位置计数器完成滑动窗口
 
 
+//debug
+extern std::vector<double> x_prior,y_prior;
+
+//data
+extern std::ofstream data_file;
 
 struct ROBOT_TRACE_POINT
 {
@@ -70,7 +69,7 @@ public:
     // inline void ESTIMATE_matchPathTrace(void);
     // inline void ESTIMATE_calculateProb(void);
     // inline void ESTIMATE_ProbUpdate(ROBOT_TRACE_POINT old_trace);
-    inline void ESTIMATE_JudgeTarget(const vector<Vector2d> &task_points, gridPathFinder &path_planner);
+    inline void ESTIMATE_JudgeTarget(const vector<Vector2d> &task_points, gridPathFinder &path_planner, bool replan_flag);
     inline Vector2d ESTIMATE_EstObserve(Vector2d new_point);
     inline void ESTIMATE_estUpdate(void);
     inline void ESTIMATE_probUpdate(void);
@@ -129,15 +128,17 @@ public:
     HungarianAlgorithm allocation;
     int targetIndex;
     int taskReallocCount;
+    int replanCount;
 //控制
+//TODO:转向用pd控制
     double ctrlV = 0.3;
     double ctrlW;
     double ctrlWMax = 0.5;
     double ctrlVMax = 0.3;
     //pid
-    double ctrlPidWp = 1;
+    double ctrlPidWp = 2;
     //前瞻距离
-    double ctrlDis = 0.5;
+    double ctrlDis = 0.6;
     //TODO:控制限幅
 //flag
     bool initFlag;

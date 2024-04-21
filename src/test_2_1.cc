@@ -34,7 +34,7 @@ VectorXd forward(VectorXd x_, double v_ , double w_, double t_)
     return x;
 }
 
-void ctrl(const vector<Vector2d>& task_path,const VectorXd& state ,double& ctrlW,double& ctrlV)
+void ctrl(const vector<Vector2d>& task_path,const VectorXd& state ,double& ctrlW,double& ctrlV,const double ctrlDis = 0.6)
 {
     //TODO:轨迹生成，找到path最近点，若小于前瞻距离，则向前寻找前瞻点，否则用最近点
     //用最近点后面的一个点作为跟踪点
@@ -59,7 +59,25 @@ void ctrl(const vector<Vector2d>& task_path,const VectorXd& state ,double& ctrlW
     }
     else
     {
-        track_point = task_path.at(min_idx+1);
+        //向后搜索前瞻距离的点作为目标点
+        double dis = 0;
+        bool find_flag = false;
+        for(uint8_t i = min_idx;i<task_path.size()-1;++i)
+        {
+            dis += robot_distanceL2(task_path.at(i),task_path.at(i+1));
+            if(dis>ctrlDis)
+            {
+                track_point = task_path.at(i);
+                find_flag = true;
+                break;
+            }
+        }
+        //快到终点了，用终点，减速
+        if(!find_flag)
+        {
+            track_point = task_path.back();
+            ctrlV = robot_distanceL2(track_point,position);
+        }
     }
 
     //控制角速度
@@ -73,7 +91,7 @@ void ctrl(const vector<Vector2d>& task_path,const VectorXd& state ,double& ctrlW
     {
         angle_diff += 2*M_PI;
     }
-    ctrlW = 1 * angle_diff;
+    ctrlW = 2 * angle_diff;
     double ctrlWMax = 0.5;
     ctrlW = ctrlW>ctrlWMax?ctrlWMax : ctrlW<-ctrlWMax?-ctrlWMax:ctrlW;
     double ctrlVMax = 0.3;
@@ -85,42 +103,49 @@ void draw_plot(void)
     plt::cla();
     // plt::figure_size(1200, 780);
     plt::plot(x_self, y_self,"r--");
-    plt::plot(x_other, y_other);
-    plt::plot(x_path, y_path,"*b");
-    // plt::plot(x_observed, y_observed,"g--");
-    plt::plot(x_match_1, y_match_1,"g--");
+    plt::plot(x_other, y_other,"y--");
+    plt::plot(x_path, y_path,"y--");
+    plt::plot(x_observed, y_observed,"g--");
+    plt::plot(x_prior, y_prior,"b--");
+    plt::plot(x_match_0, y_match_0,"b--");
+    plt::plot(x_match_1, y_match_1,"b--");
     plt::show();
 }
 
 int main()
 {
+    //data
+    data_file << "prior_x" << ',' << "prior_y" << ',' << "observe_x" << ',' << "observe_y" << ','
+             << "post_x" << ',' << "post_y" << ',' << "post_theta" << ',' << "post_v" << ',' << "post_w" << '\n';
+
     double global_time = 0;
 
     vector<Vector2d> task_points;
-    task_points.push_back(Vector2d(1,4));
-    task_points.push_back(Vector2d(6,5));
+    task_points.push_back(Vector2d(4.5,5.5));
+    task_points.push_back(Vector2d(6.5,5.5));
 
     vector<Vector2d> init_points;
-    init_points.push_back(Vector2d(5,8));
-    init_points.push_back(Vector2d(3,1));
+    init_points.push_back(Vector2d(5.5,8.5));
+    init_points.push_back(Vector2d(3.5,1.5));
 
     //map
-    int map_x = 8,map_y = 10;
-    double resolution = 1.0;
+    int map_x = 80,map_y = 100;
+    double resolution = 0.1;
     uint8_t* map_data = new uint8_t[map_x * map_y]{0};
     GRID_MAP<Vector2d> map(map_data,Vector2d(0.0,0.0),map_x,map_y,resolution);
 
     int robot_num = 2;
 
-    ROBOT robot(map,task_points,init_points,robot_num,10,0.5,10);
+//robot
+    ROBOT robot(map,task_points,init_points,robot_num,20,0.6,20);
 
     double v0 = 0.0;
     double w0 = 0.0;
     double dt = 0.1;
 
     //X,Y,theta,v,w
-    VectorXd self_pos = (VectorXd(5) << 3, 1, M_PI_2, 0, 0).finished();
-    VectorXd other_pos = (VectorXd(5) << 5, 8, 0, 0, 0).finished();
+    VectorXd self_pos = (VectorXd(5) << init_points.back().x(), init_points.back().y(), M_PI_2, 0, 0).finished();
+    VectorXd other_pos = (VectorXd(5) << init_points.at(0).x(), init_points.at(0).y(), -M_PI_2, 0, 0).finished();
 
     gridPathFinder other_planner;
     vector<Vector2d> other_path;
@@ -141,7 +166,7 @@ int main()
     }
     //get path
     Vector3d start(other_pos.x(),other_pos.y(),0);
-    Vector3d end(task_points.at(1).x(),task_points.at(1).y(),0);
+    Vector3d end(task_points.at(0).x(),task_points.at(0).y(),0);
     other_planner.graphSearch(start,end,false);
     other_path = other_planner.getPath(true);
 
@@ -162,17 +187,19 @@ int main()
         other_pos = forward(other_pos,v0,w0,dt);
     } while(!robot.ROBOT_Init(global_time));
     //5s
-    for(int i = 0; i < 100; i++)
+    for(int i = 0; i < 200; i++)
     {
         global_time += dt;
         vector<Vector2d> sense_poses = {Vector2d(other_pos(0),other_pos(1)),Vector2d(self_pos(0),self_pos(1))};
         robot.ROBOT_GetSenseData(sense_poses,self_pos(2));
+        robot.ROBOT_Update(global_time);
+
         v0 = 0.3;
         ctrl(other_path,other_pos,w0,v0);
-
         other_pos = forward(other_pos,v0,w0,dt);
-
-        robot.ROBOT_Update(global_time);
+        //debug
+        //cout w0
+        cout<<"w:"<<w0<<endl;
         self_pos = forward(self_pos,robot.ctrlV,robot.ctrlW,dt);
 
         x_self.push_back(self_pos(0));
@@ -185,9 +212,13 @@ int main()
         y_match_0.push_back(robot.otherEstimation.at(0)->estPoint.at(0).y());
         x_match_1.push_back(robot.otherEstimation.at(0)->estPoint.at(1).x());
         y_match_1.push_back(robot.otherEstimation.at(0)->estPoint.at(1).y()); 
-        draw_plot();
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));      
+        // std::this_thread::sleep_for(std::chrono::milliseconds(100));   
+        // draw_plot();   
     }
+    data_file.close();
+    draw_plot();  
+
+
 
 
     return 0;
