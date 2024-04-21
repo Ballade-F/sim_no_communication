@@ -44,6 +44,8 @@ public:
     vector<double> taskProb;
     double probThreshold;
 
+    bool findFlag = true;
+    VectorXd lastEst;
 
     ExtendKalman kalman;
 
@@ -70,7 +72,7 @@ public:
     // inline void ESTIMATE_calculateProb(void);
     // inline void ESTIMATE_ProbUpdate(ROBOT_TRACE_POINT old_trace);
     inline void ESTIMATE_JudgeTarget(const vector<Vector2d> &task_points, gridPathFinder &path_planner, bool replan_flag);
-    inline Vector2d ESTIMATE_EstObserve(Vector2d new_point);
+    inline Vector2d ESTIMATE_EstObserve(double dt);
     inline void ESTIMATE_estUpdate(void);
     inline void ESTIMATE_probUpdate(void);
     inline Vector2d ESTIMATE_findEst(int path_idx, double trace_dis);
@@ -179,3 +181,7 @@ inline double robot_distanceL2(Vector2d x1, Vector2d x2)
     return (x1-x2).norm();
     // return 1.0;
 }
+
+
+VectorXd forward(VectorXd x_, double v_ , double w_, double t_);
+void ctrl(const vector<Vector2d>& task_path,const VectorXd& state ,double& ctrlW,double& ctrlV,const double ctrlDis = 0.6);

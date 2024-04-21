@@ -48,7 +48,7 @@ ROBOT::ROBOT(GRID_MAP<Vector2d> map_, std::vector<Vector2d> taskPoints_, std::ve
         other_state_ptr->kalman.init(x_0);
         otherEstimation.push_back(other_state_ptr);
     }
-    otherPosition = vector<Vector2d>(robotsNum-1);
+    // otherPosition = vector<Vector2d>(robotsNum-1);
     taskPath = vector<vector<Vector2d>>(taskNum);
     taskCost = vector<double>(taskNum);
     targetIndex = -1;
@@ -211,9 +211,10 @@ void ROBOT::ROBOT_Update(double t)
 void ROBOT::ROBOT_GetSenseData(const vector<Vector2d> &observe_position, const double& rotation)
 {
     selfPosition = observe_position.back();
-    for(int i = 0;i<robotsNum-1;++i)
+    otherPosition.clear();
+    for(int i = 0;i<observe_position.size()-1;++i)
     {
-        otherPosition.at(i) = observe_position.at(i);
+        otherPosition.push_back(observe_position.at(i));
     }
     selfRotation = rotation;
 }
@@ -252,7 +253,12 @@ void ROBOT::ROBOT_TraceUpdata(double t)
             //初始化是否完成
             if(initFlag)
             {
-                observe_point = otherEstimation.at(i)->ESTIMATE_EstObserve(new_point.at(i));
+                if(otherEstimation.at(i)->findFlag)
+                {
+                    otherEstimation.at(i)->lastEst = otherEstimation.at(i)->kalman.x_k;
+                    otherEstimation.at(i)->findFlag = false;
+                }
+                observe_point = otherEstimation.at(i)->ESTIMATE_EstObserve(dt);
             }
             else
             {
@@ -262,6 +268,8 @@ void ROBOT::ROBOT_TraceUpdata(double t)
         else
         {
             //用观测后验
+            //TODO:处理再次观测到
+            otherEstimation.at(i)->findFlag = true;
             observe_point = VectorXd(otherPosition.at(assignment.at(i)));
         }
         //更新kalman
@@ -556,10 +564,17 @@ inline void ROBOT_ESTIMATE_STATE::ESTIMATE_probUpdate(void)
     targetIndex = std::distance(taskProb.begin(), max_it);
 }
 
-inline Vector2d ROBOT_ESTIMATE_STATE::ESTIMATE_EstObserve(Vector2d new_point)
+inline Vector2d ROBOT_ESTIMATE_STATE::ESTIMATE_EstObserve(double dt)
 {
-    double trace_dis = distance + robot_distanceL2(new_point,trace.back().position);
-    return ESTIMATE_findEst(targetIndex,trace_dis);
+
+    double est_v = 0.3;
+    double est_w;
+
+    ctrl(taskPath.at(targetIndex),lastEst,est_w,est_v,0.6);
+    lastEst = forward(lastEst,est_v,est_w,dt);
+    Vector2d est_point_2d(lastEst(0),lastEst(1));
+    return est_point_2d;
+
 }
 
 inline Vector2d ROBOT_ESTIMATE_STATE::ESTIMATE_findEst(int path_idx, double trace_dis)
@@ -590,6 +605,81 @@ inline Vector2d ROBOT_ESTIMATE_STATE::ESTIMATE_findEst(int path_idx, double trac
 }
 
 
+
+VectorXd forward(VectorXd x_, double v_ , double w_, double t_)
+{
+    VectorXd x = x_;
+    x(0,0) += t_ * x_(3,0) * cos(x_(2,0));
+	x(1,0) += t_ * x_(3,0) * sin(x_(2,0));
+	x(2,0) += t_ * x_(4,0);
+    x(3,0) = v_;
+    x(4,0) = w_;
+    return x;
+}
+
+void ctrl(const vector<Vector2d>& task_path,const VectorXd& state ,double& ctrlW,double& ctrlV,const double ctrlDis )
+{
+    //TODO:轨迹生成，找到path最近点，若小于前瞻距离，则向前寻找前瞻点，否则用最近点
+    //用最近点后面的一个点作为跟踪点
+    Vector2d track_point = task_path.at(0);
+    Vector2d position(state(0),state(1));
+    double rotation = state(2);
+    double min_dis = robot_distanceL2(track_point,position);
+    int min_idx = 0;
+    for(uint8_t i = 1;i<task_path.size();++i)
+    {
+        double dis = robot_distanceL2(task_path.at(i),position);
+        if(dis<min_dis)
+        {
+            min_dis = dis;
+            min_idx = i;
+        }
+    }
+    if(min_idx==task_path.size()-1)
+    {
+        track_point = task_path.back();
+        ctrlV = min_dis;
+    }
+    else
+    {
+        //向后搜索前瞻距离的点作为目标点
+        double dis = 0;
+        bool find_flag = false;
+        for(uint8_t i = min_idx;i<task_path.size()-1;++i)
+        {
+            dis += robot_distanceL2(task_path.at(i),task_path.at(i+1));
+            if(dis>ctrlDis)
+            {
+                track_point = task_path.at(i);
+                find_flag = true;
+                break;
+            }
+        }
+        //快到终点了，用终点，减速
+        if(!find_flag)
+        {
+            track_point = task_path.back();
+            ctrlV = robot_distanceL2(track_point,position);
+        }
+    }
+
+    //控制角速度
+    double target_angle = atan2(track_point.y()-position.y(),track_point.x()-position.x());
+    double angle_diff = target_angle - rotation;
+    if(angle_diff>M_PI)
+    {
+        angle_diff -= 2*M_PI;
+    }
+    else if(angle_diff<-M_PI)
+    {
+        angle_diff += 2*M_PI;
+    }
+    ctrlW = 2 * angle_diff;
+    double ctrlWMax = 0.5;
+    ctrlW = ctrlW>ctrlWMax?ctrlWMax : ctrlW<-ctrlWMax?-ctrlWMax:ctrlW;
+    double ctrlVMax = 0.3;
+    ctrlV = ctrlV>ctrlVMax?ctrlVMax:ctrlV<-ctrlVMax?-ctrlVMax:ctrlV;
+}
 
 // inline void ROBOT_ESTIMATE_STATE::ESTIMATE_matchPathTrace(void)
 // {

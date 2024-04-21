@@ -23,80 +23,7 @@ double gaussian_distribution(double mean, double std_dev)
     return dist(gen);
 }
  
-VectorXd forward(VectorXd x_, double v_ , double w_, double t_)
-{
-    VectorXd x = x_;
-    x(0,0) += t_ * x_(3,0) * cos(x_(2,0));
-	x(1,0) += t_ * x_(3,0) * sin(x_(2,0));
-	x(2,0) += t_ * x_(4,0);
-    x(3,0) = v_;
-    x(4,0) = w_;
-    return x;
-}
 
-void ctrl(const vector<Vector2d>& task_path,const VectorXd& state ,double& ctrlW,double& ctrlV,const double ctrlDis = 0.6)
-{
-    //TODO:轨迹生成，找到path最近点，若小于前瞻距离，则向前寻找前瞻点，否则用最近点
-    //用最近点后面的一个点作为跟踪点
-    Vector2d track_point = task_path.at(0);
-    Vector2d position(state(0),state(1));
-    double rotation = state(2);
-    double min_dis = robot_distanceL2(track_point,position);
-    int min_idx = 0;
-    for(uint8_t i = 1;i<task_path.size();++i)
-    {
-        double dis = robot_distanceL2(task_path.at(i),position);
-        if(dis<min_dis)
-        {
-            min_dis = dis;
-            min_idx = i;
-        }
-    }
-    if(min_idx==task_path.size()-1)
-    {
-        track_point = task_path.back();
-        ctrlV = min_dis;
-    }
-    else
-    {
-        //向后搜索前瞻距离的点作为目标点
-        double dis = 0;
-        bool find_flag = false;
-        for(uint8_t i = min_idx;i<task_path.size()-1;++i)
-        {
-            dis += robot_distanceL2(task_path.at(i),task_path.at(i+1));
-            if(dis>ctrlDis)
-            {
-                track_point = task_path.at(i);
-                find_flag = true;
-                break;
-            }
-        }
-        //快到终点了，用终点，减速
-        if(!find_flag)
-        {
-            track_point = task_path.back();
-            ctrlV = robot_distanceL2(track_point,position);
-        }
-    }
-
-    //控制角速度
-    double target_angle = atan2(track_point.y()-position.y(),track_point.x()-position.x());
-    double angle_diff = target_angle - rotation;
-    if(angle_diff>M_PI)
-    {
-        angle_diff -= 2*M_PI;
-    }
-    else if(angle_diff<-M_PI)
-    {
-        angle_diff += 2*M_PI;
-    }
-    ctrlW = 2 * angle_diff;
-    double ctrlWMax = 0.5;
-    ctrlW = ctrlW>ctrlWMax?ctrlWMax : ctrlW<-ctrlWMax?-ctrlWMax:ctrlW;
-    double ctrlVMax = 0.3;
-    ctrlV = ctrlV>ctrlVMax?ctrlVMax:ctrlV<-ctrlVMax?-ctrlVMax:ctrlV;
-}
 
 void draw_plot(void)
 {
@@ -190,7 +117,16 @@ int main()
     for(int i = 0; i < 200; i++)
     {
         global_time += dt;
-        vector<Vector2d> sense_poses = {Vector2d(other_pos(0),other_pos(1)),Vector2d(self_pos(0),self_pos(1))};
+        vector<Vector2d> sense_poses;
+        if(i<50)
+        {
+            sense_poses.push_back(Vector2d(other_pos(0),other_pos(1)));
+            sense_poses.push_back(Vector2d(self_pos(0),self_pos(1)));
+        }
+        else
+        {
+            sense_poses.push_back(Vector2d(self_pos(0),self_pos(1)));
+        }
         robot.ROBOT_GetSenseData(sense_poses,self_pos(2));
         robot.ROBOT_Update(global_time);
 
