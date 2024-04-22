@@ -5,6 +5,7 @@
 
 //debug
 std::vector<double> x_prior,y_prior;
+std::ofstream data_debug_file("../data/data_2_debug.csv");
 
 //data
 std::ofstream data_file("../data/data_2.csv");
@@ -154,6 +155,7 @@ bool ROBOT::ROBOT_Init(double t)
         }
         targetIndex = assignment.back();
         initFlag = true;
+        taskReallocCount = taskReallocReload;
         return true;
     }
     else
@@ -281,9 +283,9 @@ void ROBOT::ROBOT_TraceUpdata(double t)
         //cout kalman
         x_prior.push_back(new_point.at(i).x());
         y_prior.push_back(new_point.at(i).y());
-        cout <<i<<": "<< "prior: "<< new_point.at(i).x()<<" "<<new_point.at(i).y()<<endl;
-        cout << "   observe: "<< observe_point.x()<<" "<<observe_point.y()<<endl;
-        cout << "   posterior: "<< posterior_point(0)<<" "<<posterior_point(1)<<" "<<posterior_point(2)<<" "<<posterior_point(3)<<" "<<posterior_point(4)<<endl;
+        // cout <<i<<": "<< "prior: "<< new_point.at(i).x()<<" "<<new_point.at(i).y()<<endl;
+        // cout << "   observe: "<< observe_point.x()<<" "<<observe_point.y()<<endl;
+        // cout << "   posterior: "<< posterior_point(0)<<" "<<posterior_point(1)<<" "<<posterior_point(2)<<" "<<posterior_point(3)<<" "<<posterior_point(4)<<endl;
 
         //data
         data_file<<new_point.at(i).x()<<","<<new_point.at(i).y()<<","<<observe_point.x()<<","<<observe_point.y()<<",";
@@ -496,20 +498,19 @@ void ROBOT::ROBOT_Ctrl(void)
 
 inline void ROBOT_ESTIMATE_STATE::ESTIMATE_JudgeTarget(const vector<Vector2d> &task_points,gridPathFinder &path_planner, bool replan_flag)
 {
+
+    //debug
+    static int count = 0;
     //更新距离
     distance += robot_distanceL2(trace.at(trace.size()-2).position,trace.back().position);
     //更新estPoint和taskProb
     ESTIMATE_estUpdate();
-    ESTIMATE_probUpdate();
+    ESTIMATE_probUpdate(replan_flag);
 
     //TODO:t0距离现在时刻太远也要重规划
     //概率最大的小于阈值，重规划
     if(replan_flag && taskProb.at(targetIndex)<probThreshold)
     {
-        //debug
-        //cout re-plan
-        cout<<"re-plan"<<endl;
-
         //用最老的点重新规划
         Vector3d start(trace.at(0).position.x(),
                         trace.at(0).position.y(),
@@ -531,7 +532,22 @@ inline void ROBOT_ESTIMATE_STATE::ESTIMATE_JudgeTarget(const vector<Vector2d> &t
         }
         //更新estPoint和taskProb
         ESTIMATE_estUpdate();
-        ESTIMATE_probUpdate();
+        ESTIMATE_probUpdate(replan_flag);
+        //debug
+        //cout re-plan
+        cout<<"re-plan"<<endl;
+        // count++;
+        // if(count==2)
+        // {
+        //     for(uint8_t i = 0;i<taskPath.at(0).size();++i)
+        //     {
+        //         for(uint8_t j = 0;j<taskPath.size();++j)
+        //         {
+        //             data_debug_file<<taskPath.at(j).at(i).x()<<","<<taskPath.at(j).at(i).y()<<",";
+        //         }
+        //         data_debug_file<<'\n';
+        //     }
+        // }
     }
  
 }
@@ -547,7 +563,7 @@ inline void ROBOT_ESTIMATE_STATE::ESTIMATE_estUpdate(void)
 
 //TODO:先用欧氏距离，后面再换成概率
 //TODO:概率用贝叶斯，注意重规划的时候要清零
-inline void ROBOT_ESTIMATE_STATE::ESTIMATE_probUpdate(void)
+inline void ROBOT_ESTIMATE_STATE::ESTIMATE_probUpdate(bool replan_flag)
 {
     vector<double> match_dis(estPoint.size());
     double sum_e_dis = 0;
@@ -560,8 +576,12 @@ inline void ROBOT_ESTIMATE_STATE::ESTIMATE_probUpdate(void)
     {
         taskProb.at(i) = match_dis.at(i)/sum_e_dis;
     }
-    auto max_it = std::max_element(taskProb.begin(), taskProb.end());
-    targetIndex = std::distance(taskProb.begin(), max_it);
+    if(findFlag && replan_flag)
+    {
+        auto max_it = std::max_element(taskProb.begin(), taskProb.end());
+        targetIndex = std::distance(taskProb.begin(), max_it);
+    }
+
 }
 
 inline Vector2d ROBOT_ESTIMATE_STATE::ESTIMATE_EstObserve(double dt)

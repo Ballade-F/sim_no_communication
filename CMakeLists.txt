@@ -43,3 +43,8 @@ add_executable(test_2_1 ./src/test_2_1.cc)
 target_include_directories(test_2_1 PRIVATE ${Python2_INCLUDE_DIRS} ${Python2_NumPy_INCLUDE_DIRS} lib)
 target_link_libraries(test_2_1 Python3::Python Python3::NumPy SIM_LIB)
 target_link_libraries(test_2_1 SIM_LIB)
+
+add_executable(test_3 ./src/test_3.cc)
+target_include_directories(test_3 PRIVATE ${Python2_INCLUDE_DIRS} ${Python2_NumPy_INCLUDE_DIRS} lib)
+target_link_libraries(test_3 Python3::Python Python3::NumPy SIM_LIB)
+target_link_libraries(test_3 SIM_LIB)

@@ -16,7 +16,7 @@ using std::endl;
 
 //debug
 extern std::vector<double> x_prior,y_prior;
-
+extern std::ofstream data_debug_file;
 //data
 extern std::ofstream data_file;
 
@@ -74,7 +74,7 @@ public:
     inline void ESTIMATE_JudgeTarget(const vector<Vector2d> &task_points, gridPathFinder &path_planner, bool replan_flag);
     inline Vector2d ESTIMATE_EstObserve(double dt);
     inline void ESTIMATE_estUpdate(void);
-    inline void ESTIMATE_probUpdate(void);
+    inline void ESTIMATE_probUpdate(bool replan_flag);
     inline Vector2d ESTIMATE_findEst(int path_idx, double trace_dis);
 
 
